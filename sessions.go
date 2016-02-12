@@ -113,6 +113,8 @@ func (s *session) Options(options Options) {
 		Secure:   options.Secure,
 		HttpOnly: options.HttpOnly,
 	}
+
+	s.written = true
 }
 
 func (s *session) Save() error {

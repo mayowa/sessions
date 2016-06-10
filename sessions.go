@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/context"
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo"
+	"github.com/labstack/echo/engine/standard"
 )
 
 const (
@@ -57,12 +58,20 @@ type Session interface {
 	Save() error
 }
 
-func Sessions(name string, store Store) echo.HandlerFunc {
-	return func(c *echo.Context) error {
-		s := &session{name, c.Request(), store, nil, false, c.Response()}
-		c.Set(DefaultKey, s)
-		defer context.Clear(c.Request())
-		return nil
+func Sessions(name string, store Store) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			s := &session{
+				name, c.Request().(*standard.Request).Request,
+				store, nil, false,
+				c.Response().(*standard.Response).ResponseWriter,
+			}
+
+			c.Set(DefaultKey, s)
+			defer context.Clear(c.Request().(*standard.Request).Request)
+
+			return next(c)
+		}
 	}
 }
 
@@ -144,6 +153,6 @@ func (s *session) Written() bool {
 }
 
 // shortcut to get session
-func Default(c *echo.Context) Session {
+func Default(c echo.Context) Session {
 	return c.Get(DefaultKey).(Session)
 }
